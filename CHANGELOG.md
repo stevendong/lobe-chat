@@ -2,6 +2,149 @@
 
 # Changelog
 
+### [Version 1.80.1](https://github.com/lobehub/lobe-chat/compare/v1.80.0...v1.80.1)
+
+<sup>Released on **2025-04-16**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix model support file and image logic.
+
+#### 💄 Styles
+
+- **misc**: Add `step-r1` & `glm-z1` model fetch support.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix model support file and image logic, closes [#7387](https://github.com/lobehub/lobe-chat/issues/7387) ([4d26885](https://github.com/lobehub/lobe-chat/commit/4d26885))
+
+#### Styles
+
+- **misc**: Add `step-r1` & `glm-z1` model fetch support, closes [#7420](https://github.com/lobehub/lobe-chat/issues/7420) ([4055840](https://github.com/lobehub/lobe-chat/commit/4055840))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.80.0](https://github.com/lobehub/lobe-chat/compare/v1.79.10...v1.80.0)
+
+<sup>Released on **2025-04-16**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Rename new feature development doc to mdx, some code optimization.
+
+#### ✨ Features
+
+- **misc**: Opening settings copyright i18n, regenerate migrate sql for new agent opening settings.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Opening questions should should be hidden when no setted, opening settings migration type error.
+
+#### 💄 Styles
+
+- **misc**: Opening message container add border.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Rename new feature development doc to mdx ([892a347](https://github.com/lobehub/lobe-chat/commit/892a347))
+- **misc**: Some code optimization ([47e04fa](https://github.com/lobehub/lobe-chat/commit/47e04fa))
+
+#### What's improved
+
+- **misc**: Opening settings copyright i18n ([27c5b45](https://github.com/lobehub/lobe-chat/commit/27c5b45))
+- **misc**: Regenerate migrate sql for new agent opening settings ([961d6a1](https://github.com/lobehub/lobe-chat/commit/961d6a1))
+
+#### What's fixed
+
+- **misc**: Opening questions should should be hidden when no setted ([211ee5e](https://github.com/lobehub/lobe-chat/commit/211ee5e))
+- **misc**: Opening settings migration type error ([72cf00e](https://github.com/lobehub/lobe-chat/commit/72cf00e))
+
+#### Styles
+
+- **misc**: Opening message container add border ([63b96c7](https://github.com/lobehub/lobe-chat/commit/63b96c7))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.79.10](https://github.com/lobehub/lobe-chat/compare/v1.79.9...v1.79.10)
+
+<sup>Released on **2025-04-15**</sup>
+
+#### 💄 Styles
+
+- **misc**: Make gpt-4.1-mini default model.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Make gpt-4.1-mini default model, closes [#7414](https://github.com/lobehub/lobe-chat/issues/7414) ([724fcee](https://github.com/lobehub/lobe-chat/commit/724fcee))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.79.9](https://github.com/lobehub/lobe-chat/compare/v1.79.8...v1.79.9)
+
+<sup>Released on **2025-04-15**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor trpc to have a clear obligation.
+
+#### 💄 Styles
+
+- **misc**: Add GPT-4.1 models.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Refactor trpc to have a clear obligation, closes [#7412](https://github.com/lobehub/lobe-chat/issues/7412) ([01c0120](https://github.com/lobehub/lobe-chat/commit/01c0120))
+
+#### Styles
+
+- **misc**: Add GPT-4.1 models, closes [#7410](https://github.com/lobehub/lobe-chat/issues/7410) ([3c4d7df](https://github.com/lobehub/lobe-chat/commit/3c4d7df))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 1.79.8](https://github.com/lobehub/lobe-chat/compare/v1.79.7...v1.79.8)
 
 <sup>Released on **2025-04-12**</sup>
