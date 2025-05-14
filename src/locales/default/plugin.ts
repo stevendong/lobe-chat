@@ -54,11 +54,19 @@ export default {
         placeholder: '例如：mcp-hello-world',
         required: '请输入启动参数',
       },
+      avatar: {
+        label: '插件图标',
+      },
       command: {
         desc: '用于启动 MCP STDIO Server 的可执行文件或脚本',
         label: '命令',
         placeholder: '例如：npx / uv / docker 等',
         required: '请输入启动命令',
+      },
+      desc: {
+        desc: '添加插件的描述说明',
+        label: '插件描述',
+        placeholder: '补充该插件的使用说明和场景等信息',
       },
       endpoint: {
         desc: '输入你的 MCP Streamable HTTP Server 的地址',
@@ -103,7 +111,7 @@ export default {
         title: 'MCP 插件类型',
       },
       url: {
-        desc: '输入你的 MCP Server Streamable HTTP 地址，不会以 /sse 结尾',
+        desc: '输入你的 MCP Server Streamable HTTP 地址，不支持 SSE 模式',
         invalid: '请输入有效的 URL 地址',
         label: 'Streamable HTTP Endpoint URL',
         required: '请输入 MCP 服务 URL',

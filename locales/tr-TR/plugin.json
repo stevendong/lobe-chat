@@ -54,11 +54,19 @@
         "placeholder": "Örneğin: --port 8080 --debug",
         "required": "Lütfen başlatma parametrelerini girin"
       },
+      "avatar": {
+        "label": "Eklenti İkonu"
+      },
       "command": {
         "desc": "MCP STDIO eklentisini başlatmak için kullanılacak yürütülebilir dosya veya betik",
         "label": "Komut",
         "placeholder": "Örneğin: python main.py veya /path/to/executable",
         "required": "Lütfen başlatma komutunu girin"
+      },
+      "desc": {
+        "desc": "Eklentinin açıklama bilgisi ekleyin",
+        "label": "Eklenti Açıklaması",
+        "placeholder": "Bu eklentinin kullanım talimatları ve senaryoları gibi bilgileri ekleyin"
       },
       "endpoint": {
         "desc": "MCP Streamable HTTP Sunucunuzun adresini girin",
@@ -103,7 +111,7 @@
         "title": "MCP Eklenti Türü"
       },
       "url": {
-        "desc": "MCP Sunucu Akış HTTP adresinizi girin, /sse ile bitmemelidir",
+        "desc": "MCP Sunucu Akış HTTP adresinizi girin, SSE modunu desteklemez",
         "invalid": "Lütfen geçerli bir URL adresi girin",
         "label": "HTTP Endpoint URL",
         "required": "Lütfen MCP hizmet URL'sini girin"

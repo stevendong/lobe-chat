@@ -54,11 +54,19 @@
         "placeholder": "Por exemplo: --port 8080 --debug",
         "required": "Por favor, insira os parâmetros de inicialização"
       },
+      "avatar": {
+        "label": "Ícone do plugin"
+      },
       "command": {
         "desc": "Arquivo executável ou script usado para iniciar o plugin MCP STDIO",
         "label": "Comando",
         "placeholder": "Por exemplo: python main.py ou /caminho/para/executável",
         "required": "Por favor, insira o comando de inicialização"
+      },
+      "desc": {
+        "desc": "Descrição do plugin",
+        "label": "Descrição do plugin",
+        "placeholder": "Adicione informações sobre o uso e cenários do plugin"
       },
       "endpoint": {
         "desc": "Insira o endereço do seu Servidor HTTP Streamable MCP",
@@ -103,7 +111,7 @@
         "title": "Tipo de plugin MCP"
       },
       "url": {
-        "desc": "Insira o endereço HTTP Streamable do seu servidor MCP, que não deve terminar com /sse",
+        "desc": "Insira o endereço HTTP transmitível do seu servidor MCP, o modo SSE não é suportado",
         "invalid": "Por favor, insira um URL válido",
         "label": "URL do Endpoint HTTP",
         "required": "Por favor, insira o URL do serviço MCP"
