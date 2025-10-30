@@ -1,14 +1,16 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix, typescript-sort-keys/interface */
 // Disable the auto sort key eslint rule to make the code more logic and readable
-import { INBOX_SESSION_ID, isDesktop } from '@lobechat/const';
+import { DEFAULT_AGENT_CHAT_CONFIG, INBOX_SESSION_ID, isDesktop } from '@lobechat/const';
 import { knowledgeBaseQAPrompts } from '@lobechat/prompts';
 import {
-  ChatMessage,
+  ChatImageItem,
   ChatTopic,
+  ChatVideoItem,
   MessageSemanticSearchChunk,
   SendMessageParams,
   SendMessageServerResponse,
   TraceNameMap,
+  UIChatMessage,
 } from '@lobechat/types';
 import { TRPCClientError } from '@trpc/client';
 import { t } from 'i18next';
@@ -23,6 +25,7 @@ import { agentChatConfigSelectors, agentSelectors } from '@/store/agent/slices/c
 import { aiModelSelectors, aiProviderSelectors, getAiInfraStoreState } from '@/store/aiInfra';
 import { MainSendMessageOperation } from '@/store/chat/slices/aiChat/initialState';
 import type { ChatStore } from '@/store/chat/store';
+import { getFileStoreState } from '@/store/file/store';
 import { getSessionStoreState } from '@/store/session';
 import { WebBrowsingManifest } from '@/tools/web-browsing';
 import { setNamespace } from '@/utils/storeDebug';
@@ -44,7 +47,7 @@ export interface AIGenerateV2Action {
   clearSendMessageError: () => void;
   internal_refreshAiChat: (params: {
     topics?: ChatTopic[];
-    messages: ChatMessage[];
+    messages: UIChatMessage[];
     sessionId: string;
     topicId?: string;
   }) => void;
@@ -53,7 +56,7 @@ export interface AIGenerateV2Action {
    * including preprocessing and postprocessing steps
    */
   internal_execAgentRuntime: (params: {
-    messages: ChatMessage[];
+    messages: UIChatMessage[];
     userMessageId: string;
     assistantMessageId: string;
     isWelcomeQuestion?: boolean;
@@ -106,6 +109,30 @@ export const generateAIChatV2: StateCreator<
     }
 
     const messages = chatSelectors.activeBaseChats(get());
+    const chatConfig = agentChatConfigSelectors.currentChatConfig(getAgentStoreState());
+    const autoCreateThreshold =
+      chatConfig.autoCreateTopicThreshold ?? DEFAULT_AGENT_CHAT_CONFIG.autoCreateTopicThreshold;
+    const shouldCreateNewTopic =
+      !activeTopicId &&
+      !!chatConfig.enableAutoCreateTopic &&
+      messages.length + 2 >= autoCreateThreshold;
+
+    // 构造服务端模式临时消息的本地媒体预览（优先使用 S3 URL）
+    const filesInStore = getFileStoreState().chatUploadFileList;
+    const tempImages: ChatImageItem[] = filesInStore
+      .filter((f) => f.file?.type?.startsWith('image'))
+      .map((f) => ({
+        id: f.id,
+        url: f.fileUrl || f.base64Url || f.previewUrl || '',
+        alt: f.file?.name || f.id,
+      }));
+    const tempVideos: ChatVideoItem[] = filesInStore
+      .filter((f) => f.file?.type?.startsWith('video'))
+      .map((f) => ({
+        id: f.id,
+        url: f.fileUrl || f.base64Url || f.previewUrl || '',
+        alt: f.file?.name || f.id,
+      }));
 
     // use optimistic update to avoid the slow waiting
     const tempId = get().internal_createTmpMessage({
@@ -117,6 +144,8 @@ export const generateAIChatV2: StateCreator<
       // if there is activeTopicId，then add topicId to message
       topicId: activeTopicId,
       threadId: activeThreadId,
+      imageList: tempImages.length > 0 ? tempImages : undefined,
+      videoList: tempVideos.length > 0 ? tempVideos : undefined,
     });
     get().internal_toggleMessageLoading(true, tempId);
 
@@ -144,7 +173,7 @@ export const generateAIChatV2: StateCreator<
           // if there is activeTopicId，then add topicId to message
           topicId: activeTopicId,
           threadId: activeThreadId,
-          newTopic: !activeTopicId
+          newTopic: shouldCreateNewTopic
             ? {
                 topicMessageIds: messages.map((m) => m.id),
                 title: t('defaultTitle', { ns: 'topic' }),
@@ -163,8 +192,8 @@ export const generateAIChatV2: StateCreator<
         topicId: data.topicId,
       });
 
-      if (!activeTopicId) {
-        await get().switchTopic(data.topicId!, true);
+      if (data.isCreateNewTopic && data.topicId) {
+        await get().switchTopic(data.topicId, true);
       }
     } catch (e) {
       if (e instanceof TRPCClientError) {
@@ -181,7 +210,13 @@ export const generateAIChatV2: StateCreator<
     }
 
     // remove temporally message
-    get().internal_dispatchMessage({ type: 'deleteMessage', id: tempId });
+    if (data?.isCreateNewTopic) {
+      get().internal_dispatchMessage(
+        { type: 'deleteMessage', id: tempId },
+        { topicId: activeTopicId, sessionId: activeId },
+      );
+    }
+
     get().internal_toggleMessageLoading(false, tempId);
     get().internal_updateSendMessageOperation(
       operationKey,
@@ -201,6 +236,26 @@ export const generateAIChatV2: StateCreator<
       .filter((item) => item.id !== data.assistantMessageId);
 
     if (data.topicId) get().internal_updateTopicLoading(data.topicId, true);
+
+    const summaryTitle = async () => {
+      // check activeTopic and then auto update topic title
+      if (data.isCreateNewTopic) {
+        await get().summaryTopicTitle(data.topicId, data.messages);
+        return;
+      }
+
+      if (!data.topicId) return;
+
+      const topic = topicSelectors.getTopicById(data.topicId)(get());
+
+      if (topic && !topic.title) {
+        const chats = chatSelectors.getBaseChatsByKey(messageMapKey(activeId, topic.id))(get());
+        await get().summaryTopicTitle(topic.id, chats);
+      }
+    };
+
+    summaryTitle().catch(console.error);
+
     try {
       await internal_execAgentRuntime({
         messages: baseMessages,
@@ -211,31 +266,12 @@ export const generateAIChatV2: StateCreator<
         threadId: activeThreadId,
       });
 
-      const summaryTitle = async () => {
-        // check activeTopic and then auto update topic title
-        if (data.isCreatNewTopic) {
-          await get().summaryTopicTitle(data.topicId, data.messages);
-          return;
-        }
-
-        if (!data.topicId) return;
-
-        const topic = topicSelectors.getTopicById(data.topicId)(get());
-
-        if (topic && !topic.title) {
-          const chats = chatSelectors.getBaseChatsByKey(messageMapKey(activeId, topic.id))(get());
-          await get().summaryTopicTitle(topic.id, chats);
-        }
-      };
       //
       // // if there is relative files, then add files to agent
       // // only available in server mode
       const userFiles = chatSelectors.currentUserFiles(get()).map((f) => f.id);
-      const addFilesToAgent = async () => {
-        await getAgentStoreState().addFilesToAgent(userFiles, false);
-      };
 
-      await Promise.all([summaryTitle(), addFilesToAgent()]);
+      await getAgentStoreState().addFilesToAgent(userFiles, false);
     } catch (e) {
       console.error(e);
     } finally {
@@ -317,7 +353,7 @@ export const generateAIChatV2: StateCreator<
 
       ragQueryId = queryId;
 
-      const lastMsg = messages.pop() as ChatMessage;
+      const lastMsg = messages.pop() as UIChatMessage;
 
       // 2. build the retrieve context messages
       const knowledgeBaseQAContext = knowledgeBaseQAPrompts({
@@ -353,9 +389,14 @@ export const generateAIChatV2: StateCreator<
       model,
       provider!,
     )(aiInfraStoreState);
+    const isModelBuiltinSearchInternal = aiModelSelectors.isModelBuiltinSearchInternal(
+      model,
+      provider!,
+    )(aiInfraStoreState);
     const useModelBuiltinSearch = agentChatConfigSelectors.useModelBuiltinSearch(agentStoreState);
     const useModelSearch =
-      (isProviderHasBuiltinSearch || isModelHasBuiltinSearch) && useModelBuiltinSearch;
+      ((isProviderHasBuiltinSearch || isModelHasBuiltinSearch) && useModelBuiltinSearch) ||
+      isModelBuiltinSearchInternal;
     const isAgentEnableSearch = agentChatConfigSelectors.isAgentEnableSearch(agentStoreState);
 
     if (isAgentEnableSearch && !useModelSearch && !isModelSupportToolUse) {
