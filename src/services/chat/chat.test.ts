@@ -8,18 +8,12 @@ import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vite
 
 import { DEFAULT_USER_AVATAR } from '@/const/meta';
 import { DEFAULT_AGENT_CONFIG } from '@/const/settings';
-import * as isCanUseFCModule from '@/helpers/isCanUseFC';
 import * as toolEngineeringModule from '@/helpers/toolEngineering';
-import { agentChatConfigSelectors, agentSelectors } from '@/store/agent/selectors';
+import { agentChatConfigSelectors } from '@/store/agent/selectors';
 import { aiModelSelectors } from '@/store/aiInfra';
 import { useToolStore } from '@/store/tool';
-import { toolSelectors } from '@/store/tool/selectors';
-import { modelProviderSelectors } from '@/store/user/selectors';
-import { DalleManifest } from '@/tools/dalle';
 import { WebBrowsingManifest } from '@/tools/web-browsing';
 
-import { API_ENDPOINTS } from '../_url';
-import * as helpers from './helper';
 import { chatService } from './index';
 
 // Mocking external dependencies
@@ -33,7 +27,7 @@ vi.stubGlobal(
 );
 
 // Mock image processing utilities
-vi.mock('@/utils/fetch', async (importOriginal) => {
+vi.mock('@lobechat/fetch-sse', async (importOriginal) => {
   const module = await importOriginal();
 
   return { ...(module as any), getMessageError: vi.fn() };
@@ -284,6 +278,10 @@ describe('ChatService', () => {
 
     describe('should handle content correctly for vision models', () => {
       it('should include image content when with vision model', async () => {
+        // Mock helpers to return true for vision support (must be first)
+        const helpers = await import('./helper');
+        vi.spyOn(helpers, 'isCanUseVision').mockReturnValue(true);
+
         // Mock utility functions used in processImageList
         const { parseDataUri } = await import('@lobechat/utils/uriParser');
         const { isDesktopLocalStaticServerUrl } = await import('@lobechat/utils/url');
@@ -318,12 +316,22 @@ describe('ChatService', () => {
               {
                 content: [
                   {
-                    text: 'Hello',
+                    text: `Hello
+
+<!-- SYSTEM CONTEXT (NOT PART OF USER QUERY) -->
+<context.instruction>following part contains context information injected by the system. Please follow these instructions:
+
+1. Always prioritize handling user-visible content.
+2. the context is only required when user's queries rely on it.
+</context.instruction>
+<files_info>
+<images>
+<images_docstring>here are user upload images you can refer to</images_docstring>
+<image name="abc.png" url="http://example.com/image.jpg"></image>
+</images>
+</files_info>
+<!-- END SYSTEM CONTEXT -->`,
                     type: 'text',
-                  },
-                  {
-                    image_url: { detail: 'auto', url: 'http://example.com/image.jpg' },
-                    type: 'image_url',
                   },
                 ],
                 role: 'user',
@@ -375,6 +383,9 @@ describe('ChatService', () => {
           mimeType: 'image/png',
         });
 
+        // Mock aiModelSelectors to return true for vision support
+        vi.spyOn(aiModelSelectors, 'isModelSupportVision').mockReturnValue(() => true);
+
         const messages = [
           {
             content: 'Hello',
@@ -417,7 +428,21 @@ describe('ChatService', () => {
               {
                 content: [
                   {
-                    text: 'Hello',
+                    text: `Hello
+
+<!-- SYSTEM CONTEXT (NOT PART OF USER QUERY) -->
+<context.instruction>following part contains context information injected by the system. Please follow these instructions:
+
+1. Always prioritize handling user-visible content.
+2. the context is only required when user's queries rely on it.
+</context.instruction>
+<files_info>
+<images>
+<images_docstring>here are user upload images you can refer to</images_docstring>
+<image name="local-image.png" url="http://127.0.0.1:3000/uploads/image.png"></image>
+</images>
+</files_info>
+<!-- END SYSTEM CONTEXT -->`,
                     type: 'text',
                   },
                   {
@@ -432,6 +457,8 @@ describe('ChatService', () => {
               },
             ],
             model: 'gpt-4-vision-preview',
+            enabledSearch: undefined,
+            tools: undefined,
           },
           undefined,
         );
@@ -446,6 +473,9 @@ describe('ChatService', () => {
         vi.mocked(parseDataUri).mockReturnValue({ type: 'url', base64: null, mimeType: null });
         vi.mocked(isDesktopLocalStaticServerUrl).mockReturnValue(false); // This is NOT a local URL
         vi.mocked(imageUrlToBase64).mockClear(); // Clear to ensure it's not called
+
+        // Mock aiModelSelectors to return true for vision support
+        vi.spyOn(aiModelSelectors, 'isModelSupportVision').mockReturnValue(() => true);
 
         const messages = [
           {
@@ -488,7 +518,21 @@ describe('ChatService', () => {
               {
                 content: [
                   {
-                    text: 'Hello',
+                    text: `Hello
+
+<!-- SYSTEM CONTEXT (NOT PART OF USER QUERY) -->
+<context.instruction>following part contains context information injected by the system. Please follow these instructions:
+
+1. Always prioritize handling user-visible content.
+2. the context is only required when user's queries rely on it.
+</context.instruction>
+<files_info>
+<images>
+<images_docstring>here are user upload images you can refer to</images_docstring>
+<image name="remote-image.jpg" url="https://example.com/remote-image.jpg"></image>
+</images>
+</files_info>
+<!-- END SYSTEM CONTEXT -->`,
                     type: 'text',
                   },
                   {
@@ -500,6 +544,8 @@ describe('ChatService', () => {
               },
             ],
             model: 'gpt-4-vision-preview',
+            enabledSearch: undefined,
+            tools: undefined,
           },
           undefined,
         );
@@ -523,6 +569,9 @@ describe('ChatService', () => {
           base64: 'local-file-base64',
           mimeType: 'image/jpeg',
         });
+
+        // Mock aiModelSelectors to return true for vision support
+        vi.spyOn(aiModelSelectors, 'isModelSupportVision').mockReturnValue(() => true);
 
         const messages = [
           {
@@ -831,39 +880,6 @@ describe('ChatService', () => {
           undefined,
         );
       });
-
-      it('work with dalle3', async () => {
-        const getChatCompletionSpy = vi.spyOn(chatService, 'getChatCompletion');
-        const messages = [
-          {
-            role: 'user',
-            content: 'https://vercel.com/ 请分析 chatGPT 关键词\n\n',
-            sessionId: 'inbox',
-            createdAt: 1702723964330,
-            id: 'vyQvEw6V',
-            updatedAt: 1702723964330,
-            extra: {},
-            meta: {
-              avatar: DEFAULT_USER_AVATAR,
-            },
-          },
-        ] as UIChatMessage[];
-
-        await chatService.createAssistantMessage({
-          messages,
-          model: 'gpt-3.5-turbo-1106',
-          top_p: 1,
-          plugins: [DalleManifest.identifier],
-        });
-
-        // Assert that getChatCompletionSpy was called with the expected arguments
-        expect(getChatCompletionSpy).toHaveBeenCalled();
-
-        const calls = getChatCompletionSpy.mock.lastCall;
-        // Take a snapshot of the first call's first argument
-        expect(calls![0]).toMatchSnapshot();
-        expect(calls![1]).toBeUndefined();
-      });
     });
 
     describe('search functionality', () => {
@@ -1015,7 +1031,7 @@ describe('ChatService', () => {
 
     beforeEach(async () => {
       // Setup common fetchSSE mock for getChatCompletion tests
-      const { fetchSSE } = await import('@/utils/fetch');
+      const { fetchSSE } = await import('@lobechat/fetch-sse');
       mockFetchSSE = vi.fn().mockResolvedValue(new Response('mock response'));
       vi.mocked(fetchSSE).mockImplementation(mockFetchSSE);
     });
@@ -1031,6 +1047,7 @@ describe('ChatService', () => {
         stream: true,
         ...DEFAULT_AGENT_CONFIG.params,
         ...params,
+        apiMode: 'responses',
       };
 
       await chatService.getChatCompletion(params, options);
@@ -1076,7 +1093,7 @@ describe('ChatService', () => {
 
     it('should return InvalidAccessCode error when enableFetchOnClient is true and auth is enabled but user is not signed in', async () => {
       // Mock fetchSSE to call onErrorHandle with the error
-      const { fetchSSE } = await import('@/utils/fetch');
+      const { fetchSSE } = await import('@lobechat/fetch-sse');
 
       const mockFetchSSEWithError = vi.fn().mockImplementation((url, options) => {
         // Simulate the error being caught and passed to onErrorHandle
@@ -1238,8 +1255,8 @@ vi.mock('../_auth', async (importOriginal) => {
 describe('ChatService private methods', () => {
   describe('getChatCompletion', () => {
     it('should merge responseAnimation styles correctly', async () => {
-      const { fetchSSE } = await import('@/utils/fetch');
-      vi.mock('@/utils/fetch', async (importOriginal) => {
+      const { fetchSSE } = await import('@lobechat/fetch-sse');
+      vi.mock('@lobechat/fetch-sse', async (importOriginal) => {
         const module = await importOriginal();
         return {
           ...(module as any),

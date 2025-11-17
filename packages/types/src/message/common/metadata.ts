@@ -1,4 +1,5 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix , typescript-sort-keys/interface */
+import { z } from 'zod';
 
 export interface ModelTokensUsage {
   // Input tokens breakdown
@@ -38,6 +39,46 @@ export interface ModelTokensUsage {
   totalTokens?: number;
 }
 
+export const ModelUsageSchema = z.object({
+  // Input tokens breakdown
+  inputCachedTokens: z.number().optional(),
+  inputCacheMissTokens: z.number().optional(),
+  inputWriteCacheTokens: z.number().optional(),
+  inputTextTokens: z.number().optional(),
+  inputImageTokens: z.number().optional(),
+  inputAudioTokens: z.number().optional(),
+  inputCitationTokens: z.number().optional(),
+
+  // Output tokens breakdown
+  outputTextTokens: z.number().optional(),
+  outputImageTokens: z.number().optional(),
+  outputAudioTokens: z.number().optional(),
+  outputReasoningTokens: z.number().optional(),
+
+  // Prediction tokens
+  acceptedPredictionTokens: z.number().optional(),
+  rejectedPredictionTokens: z.number().optional(),
+
+  // Total tokens
+  totalInputTokens: z.number().optional(),
+  totalOutputTokens: z.number().optional(),
+  totalTokens: z.number().optional(),
+
+  // Cost
+  cost: z.number().optional(),
+});
+
+export const ModelPerformanceSchema = z.object({
+  tps: z.number().optional(),
+  ttft: z.number().optional(),
+  duration: z.number().optional(),
+  latency: z.number().optional(),
+});
+
+export const MessageMetadataSchema = ModelUsageSchema.merge(ModelPerformanceSchema).extend({
+  collapsed: z.boolean().optional(),
+});
+
 export interface ModelUsage extends ModelTokensUsage {
   /**
    * dollar
@@ -64,4 +105,13 @@ export interface ModelPerformance {
   latency?: number;
 }
 
-export interface MessageMetadata extends ModelUsage, ModelPerformance {}
+export interface MessageMetadata extends ModelUsage, ModelPerformance {
+  activeBranchIndex?: number;
+  activeColumn?: boolean;
+  /**
+   * Message collapse state
+   * true: collapsed, false/undefined: expanded
+   */
+  collapsed?: boolean;
+  compare?: boolean;
+}

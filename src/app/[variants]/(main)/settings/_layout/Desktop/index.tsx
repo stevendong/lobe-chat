@@ -5,7 +5,6 @@ import { parseAsStringEnum, useQueryState } from 'nuqs';
 import { memo, useRef } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
-import InitClientDB from '@/features/InitClientDB';
 import SettingContainer from '@/features/Setting/SettingContainer';
 import { SettingsTabs } from '@/store/global/initialState';
 
@@ -15,8 +14,7 @@ import { LayoutProps } from '../type';
 import Header from './Header';
 import SideBar from './SideBar';
 
-const Layout = memo<LayoutProps>((props) => {
-  const { showLLM = true } = props;
+const Layout = memo<LayoutProps>(() => {
   const ref = useRef<HTMLDivElement | null>(null);
   const { md = true } = useResponsive();
   const theme = useTheme();
@@ -41,9 +39,8 @@ const Layout = memo<LayoutProps>((props) => {
         <Header getContainer={() => ref.current!}>{category}</Header>
       )}
       <SettingContainer maxWidth={'none'}>
-        <SettingsContent activeTab={activeTab} mobile={false} showLLM={showLLM} />
+        <SettingsContent activeTab={activeTab} mobile={false} />
       </SettingContainer>
-      <InitClientDB />
     </Flexbox>
   );
 });
